@@ -1,0 +1,57 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+
+# first we check git status to see if git is installed
+
+PS C:\Users\evertj\git> git status
+fatal: not a git repository (or any of the parent directories): .git
+
+
+# so the good news is that git is installed.
+
+# otherwise I have to serach for git-scm and install git on my computer.
+
+# now we ask git to clone our repository.
+
+PS C:\Users\evertj\git> git clone git@github.com:jeremy-evert/handson-ml3.git
+Cloning into 'handson-ml3'...
+Enter passphrase for key '/c/Users/evertj/.ssh/id_ed25519':
+remote: Enumerating objects: 4065, done.
+remote: Counting objects: 100% (4/4), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 4065 (delta 2), reused 2 (delta 2), pack-reused 4061 (from 2)
+Receiving objects: 100% (4065/4065), 36.00 MiB | 21.54 MiB/s, done.
+Resolving deltas: 100% (2694/2694), done.
+
+# this means that our ssh key worked.
+# otherwise we need to go search for "new GitHub ssh key" and follow those steps
+# We need to make the ssh key on our computer 
+# we need to go to GitHub and go to settings, new gpg and ssh key, and then add the new key"
+
+# dir means look around in the directory
+
+PS C:\Users\evertj\git> dir
+
+
+    Directory: C:\Users\evertj\git
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2/9/2026  11:19 AM                handson-ml3
+
+
+PS C:\Users\evertj\git> cd .\handson-ml3\
+PS C:\Users\evertj\git\handson-ml3> code git_clone_the_repo_command_line.txt
+code : The term 'code' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ code git_clone_the_repo_command_line.txt
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (code:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\evertj\git\handson-ml3>
