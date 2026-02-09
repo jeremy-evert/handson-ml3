@@ -1,0 +1,77 @@
+# start with git status to begin
+
+PS C:\Users\evertj\git\handson-ml3> git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        git_clone_the_repo_command_line.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+
+# we had an untracked file, so we can track it with git add.
+
+PS C:\Users\evertj\git\handson-ml3> git add .\git_clone_the_repo_command_line.txt
+
+# now we check git status again.
+
+PS C:\Users\evertj\git\handson-ml3> git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   git_clone_the_repo_command_line.txt
+
+# now we can commit those changes with git commit
+
+PS C:\Users\evertj\git\handson-ml3> git commit
+[main d8fffcf] added notes to help me get started.
+ Committer: Evert <evertj@swosu.edu>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 57 insertions(+)
+ create mode 100644 git_clone_the_repo_command_line.txt
+
+# it threw a fit so we went to fix it.
+
+PS C:\Users\evertj\git\handson-ml3> git config --global --edit
+
+# we try git commit again
+
+PS C:\Users\evertj\git\handson-ml3> git commit
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+# git is happy but we need to push
+
+PS C:\Users\evertj\git\handson-ml3> git push
+
+# note that it still has to grab the ssh key
+
+Enter passphrase for key '/c/Users/evertj/.ssh/id_ed25519':
+Enumerating objects: 4, done.
+Counting objects: 100% (4/4), done.
+Delta compression using up to 20 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 1.30 KiB | 1.30 MiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To github.com:jeremy-evert/handson-ml3.git
+   92754b4..d8fffcf  main -> main
+PS C:\Users\evertj\git\handson-ml3>
