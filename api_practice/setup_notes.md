@@ -93,6 +93,12 @@ py -m ipykernel install --user --name api-demo --display-name "Python (api-demo)
 
 ### 5) Launch Jupyter Notebook
 
+I am goin to try:
+
+```
+code api_practice.ipynb
+```
+
 ```powershell
 jupyter notebook
 ```
