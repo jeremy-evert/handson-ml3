@@ -1,3 +1,17 @@
+# Weather Agreement Lab raw & processed data
+Weather_Agreement_Lab/data/
+Weather_Agreement_Lab/data/raw/
+Weather_Agreement_Lab/data/processed/
+
+# Large CSV / Parquet files
+*.parquet
+*.feather
+*.csv.gz
+
+# Environment variables
+.env
+
+
 # --- Python virtual environments ---
 .venv/
 venv/
