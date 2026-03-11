@@ -16,6 +16,13 @@ def run_session_diagnostics():
     print("Python version:", sys.version)
     print("Python executable:", sys.executable)
 
+    print("\n--- Virtual Environment Check ---")
+
+    if ".venv" in sys.executable:
+        print("✓ Using project virtual environment")
+    else:
+        print("⚠ NOT using project virtual environment")
+
     print("\n--- Virtual Environment ---")
     print("VIRTUAL_ENV:", os.environ.get("VIRTUAL_ENV"))
 
