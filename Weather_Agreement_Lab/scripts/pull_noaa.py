@@ -27,3 +27,13 @@ def download_noaa_hourly(station_id: str, year: int):
 
     return output_file
 
+
+
+load_dotenv()
+
+NOAA_API_TOKEN = os.getenv("NOAA_API_TOKEN")
+
+if NOAA_API_TOKEN is None:
+    raise RuntimeError(
+        "NOAA_API_TOKEN not found. Create a .env file in the project root."
+    )

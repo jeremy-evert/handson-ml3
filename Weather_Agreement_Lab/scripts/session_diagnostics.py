@@ -29,6 +29,17 @@ def run_session_diagnostics():
     print("\n--- Working Directory ---")
     print("Current working directory:", os.getcwd())
 
+    print("\n--- Project Structure Check ---")
+
+    expected_dirs = ["data", "scripts"]
+
+    for d in expected_dirs:
+        if os.path.isdir(d):
+            print(f"✓ {d}/ directory found")
+        else:
+            print(f"⚠ {d}/ directory missing")
+
+
     print("\n--- Platform ---")
     print("System:", platform.system())
     print("Release:", platform.release())
