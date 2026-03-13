@@ -8,7 +8,7 @@ from scripts.noaa_urls import build_noaa_hourly_url
 
 def download_noaa_hourly(station_id: str, year: int, overwrite: bool = False) -> Path:
     """
-    Download NOAA Global Hourly observations for a station.
+    Download NOAA ISD observations for a station.
 
     Parameters
     ----------
@@ -34,18 +34,17 @@ def download_noaa_hourly(station_id: str, year: int, overwrite: bool = False) ->
     url = build_noaa_hourly_url(station_id, year)
 
     output_file = DATA_RAW / f"{station_id}_{year}.gz"
-    
-    print(f"Downloading NOAA data to:", output_file)
-
-    # Cache check
-    if output_file.exists() and not overwrite:
-        print("✓ File already exists:", output_file)
-        return output_file
 
     print("\nDownloading NOAA data")
     print("Station:", station_id)
     print("Year:", year)
     print("URL:", url)
+    print("Destination:", output_file)
+
+    # Cache check
+    if output_file.exists() and not overwrite:
+        print("✓ File already exists:", output_file)
+        return output_file
 
     headers = {"token": token}
 
