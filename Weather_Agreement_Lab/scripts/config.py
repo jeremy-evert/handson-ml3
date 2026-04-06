@@ -15,3 +15,7 @@ def ensure_directories():
     for d in [DATA_RAW, DATA_PROCESSED, DATA_ANALYSIS]:
         d.mkdir(parents=True, exist_ok=True)
 
+def show_data_status():
+    print("Raw exists:", DATA_RAW.exists())
+    print("Processed exists:", DATA_PROCESSED.exists())
+    print("Raw contents:", list(DATA_RAW.glob("*")))
