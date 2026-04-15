@@ -2,9 +2,9 @@
 
 ## Goal
 
-Build a small, clean, reusable prompt workflow system for Codex work inside a repository.
+Build a small, conservative prompt workflow system for Codex work inside a repository.
 
-This system should be conservative first:
+This system should stay:
 
 * easy to inspect
 * easy to test
@@ -13,6 +13,40 @@ This system should be conservative first:
 * safe by default
 
 The design should emphasize **separation of concerns** so each piece does one job clearly.
+
+---
+
+## V1 Problem Statement
+
+The immediate V1 problem is not "how do we build a larger prompt platform?"
+
+It is:
+
+* how to execute one bounded prompt run
+* how to preserve a durable record of that run
+* how to stop for human review before the next prompt is treated as ready
+
+The current gap is that prompt execution exists, but the workflow boundary between:
+
+* execution
+* durable evidence
+* accepted progress
+
+is still too loose.
+
+That gap matters because the governing workflow requires:
+
+* thin slices before broad automation
+* review between iterations
+* durable local history
+* failure evidence that supports refinement instead of blind retry
+
+So V1 should solve the smallest workflow problem that makes the sequence inspectable:
+
+* one run
+* one durable execution record
+* one manual review gate
+* one conservative rule for whether the next prompt may proceed
 
 ---
 
@@ -26,11 +60,181 @@ The first draft bundled too many responsibilities into one script. That made it 
 * evolve
 * reuse across repositories
 
-We want a cleaner structure that can become a template for future repos.
+We want a cleaner structure, but V1 should only separate what is necessary to support the governing workflow.
+
+This is still a design-alignment step, not a broad implementation push.
 
 ---
 
-## What the First Script Was Doing
+## V1 Scope
+
+V1 covers the minimum workflow slice from prompt execution through later human review.
+
+It includes:
+
+* selecting and executing one prompt
+* writing one durable execution record in `notes/`
+* keeping execution outcome separate from review outcome
+* stopping the queue at `UNREVIEWED`
+* allowing only an explicit accepted review outcome to release the next prompt
+
+V1 is intentionally about workflow control and artifact clarity, not about architectural breadth.
+
+---
+
+## Out Of Scope For V1
+
+The following items are explicitly out of scope in this stage:
+
+* runner refactor into many modules
+* dependency-aware scheduling
+* richer queue state machines
+* automatic approval or review routing
+* aggregated reports and dashboards
+* retry intelligence beyond minimal retry linkage
+* token accounting beyond optional lightweight fields
+* broad CLI redesign
+* reusable multi-repo configuration systems
+* structured sidecars, databases, or platform services
+
+These may become useful later, but they should not shape V1 beyond clear deferral notes.
+
+---
+
+## Minimum Artifact Inventory
+
+The governing workflow expects the minimum required artifacts to be explicit.
+
+For V1, the minimum inventory is:
+
+### 1. Governing workflow
+
+`tools/Project_Design_Workflow.md`
+
+This remains the controlling sequence for:
+
+* bounded execution
+* validation
+* review between iterations
+* deferral discipline
+
+### 2. Architecture document
+
+`tools/Codex_Prompt_Workflow_Architecture.md`
+
+This document should explain:
+
+* the V1 problem being solved
+* the V1 scope boundary
+* the minimum parts and artifacts
+* the conservative implementation order
+* what remains deferred
+
+### 3. V1 execution record definition
+
+`tools/codex/V1_Execution_Record_Artifact.md`
+
+This defines the minimum durable source of truth for one run.
+
+Its role in the architecture is to make one run inspectable without requiring a larger system.
+
+### 4. V1 review gate definition
+
+`tools/codex/V1_Run_Review_Gate.md`
+
+This defines the smallest manual stop between one completed run and the next prompt becoming ready.
+
+Its role in the architecture is to keep execution success separate from accepted progress.
+
+### 5. Execution record files in `notes/`
+
+For V1, one run should produce one markdown execution-record file in `notes/`.
+
+That record is the minimum durable run artifact.
+
+No additional required queue file, database, or sidecar should be introduced in V1.
+
+---
+
+## Minimum Viable Slice
+
+The minimum viable slice is:
+
+1. execute one prompt
+2. write one execution record with `review_status: UNREVIEWED`
+3. stop for human review
+4. update the same execution record to either `ACCEPTED` or `REJECTED`
+5. treat only `ACCEPTED` as releasing the next prompt in sequence
+
+This is the smallest slice that proves the workflow rather than only the runner.
+
+It is intentionally narrower than:
+
+* a generalized queue engine
+* a full prompt-status system
+* a modular tool suite
+* an automation framework
+
+---
+
+## Role Of The Execution Record
+
+The execution record is the central V1 artifact.
+
+Its purpose is to preserve, in one inspectable markdown file:
+
+* what prompt was run
+* what happened during execution
+* what Codex returned
+* what lightweight failure or resource evidence was observed
+* what a human later decided about the run
+
+For V1:
+
+* the record body is the source of truth
+* the file in `notes/` is the durable local history unit
+* one run should not be split across multiple required files
+
+This keeps V1 small while still supporting:
+
+* review between iterations
+* failure analysis
+* lightweight cost awareness
+* stable run identity
+
+The execution record defined in `tools/codex/V1_Execution_Record_Artifact.md` should therefore be treated as a required architectural element, not an implementation detail.
+
+---
+
+## Role Of The Review Gate
+
+The review gate is the minimum manual checkpoint after execution record creation.
+
+Its purpose is to enforce the governing workflow rule that the next bounded step should not proceed only because a process finished successfully.
+
+For V1:
+
+* execution writes a record
+* new records begin as `UNREVIEWED`
+* human review decides `ACCEPTED` or `REJECTED`
+* only `ACCEPTED` allows the next prompt to be treated as ready
+
+This means the review gate is not a separate platform subsystem.
+
+It is the manual transition of a single execution record from:
+
+* `UNREVIEWED`
+
+to one of:
+
+* `ACCEPTED`
+* `REJECTED`
+
+The review gate defined in `tools/codex/V1_Run_Review_Gate.md` is therefore part of the architecture boundary for V1, not an optional later add-on.
+
+---
+
+## What The First Script Was Doing
 
 Below is a decomposition of the responsibilities that were bundled together.
 
@@ -71,7 +275,6 @@ Below is a decomposition of the responsibilities that were bundled together.
 
 * map prompts to matching notes
 * determine whether each prompt is:
-
   * UNRUN
   * SUCCESS
   * FAIL
@@ -114,391 +317,151 @@ Below is a decomposition of the responsibilities that were bundled together.
 * format output for human readability
 * present status tables and retry blocks
 
----
-
-## What I Would Like This System To Do Eventually
-
-These are ideas worth considering, but they should not all be built at once.
-
-### A. Better architecture and reuse
-
-* work as a reusable template across repositories
-* isolate config from code
-* support per-repo conventions without rewriting internals
-
-### B. Structured metadata
-
-* optionally store prompt metadata in frontmatter or sidecar files
-* support fields like:
-
-  * title
-  * objective
-  * tags
-  * priority
-  * dependencies
-  * owner
-
-### C. Better status model
-
-Instead of only:
-
-* UNRUN
-* SUCCESS
-* FAIL
-
-We may want:
-
-* READY
-* RUNNING
-* BLOCKED
-* NEEDS_REVIEW
-* PARTIAL
-* SKIPPED
-* ARCHIVED
-
-### D. Retry intelligence
-
-* carry forward the previous failed note automatically
-* include multiple prior failures, not just the latest one
-* summarize recurring failure patterns
-
-### E. Prompt preparation
-
-* generate a clean “execution bundle” for Codex
-* include:
-
-  * prompt text
-  * repo context
-  * previous failure note if retrying
-  * explicit success criteria
-
-### F. Manual and automated modes
-
-* manual mode for conservative workflows
-* dry-run mode for seeing what would happen
-* later, optional Codex CLI integration
-
-### G. Report generation
-
-* generate queue reports
-* generate status snapshots
-* generate audit/history reports over prompt activity
-
-### H. Better note/content model
-
-* move from filename-only state to richer note contents
-* enforce a consistent note template
-* optionally add structured machine-readable metadata inside notes
-
-### I. Dependency and sequencing support
-
-* allow prompts to depend on other prompts
-* prevent prompts from running before prerequisites are complete
-
-### J. Prompt families or lanes
-
-* support categories such as:
-
-  * setup
-  * audit
-  * refactor
-  * notebook generation
-  * documentation
-
-### K. Approval gates
-
-* require human confirmation before marking success
-* require review before allowing dependent prompts to proceed
-
-### L. Logging and diagnostics
-
-* maintain an execution log
-* record tool errors separately from task failures
-* distinguish infrastructure failure from prompt failure
-
-### M. File layout that scales cleanly
-
-* support growth without turning into a junk drawer
+This decomposition is still useful, but V1 should not treat every decomposed responsibility as something that must be built now.
 
 ---
 
-## Proposed Folder Architecture
+## V1 Architectural Shape
 
-A better first structure would be:
+The conservative V1 shape is smaller than a full prompt-workflow toolkit.
 
-```text
-tools/
-  codex/
-    README.md
-    architecture.md
-    config.py
-    paths.py
-    prompts.py
-    notes.py
-    status.py
-    retry.py
-    cli.py
-    templates/
-      note_success.md
-      note_fail.md
-```
+It needs only these practical responsibilities:
 
-For an even more conservative start, we can go smaller:
+### 1. Prompt resolution
 
-```text
-tools/
-  codex/
-    README.md
-    architecture.md
-    paths.py
-    prompts.py
-    notes.py
-    status.py
-```
+Enough logic to identify the intended prompt file safely and reproducibly.
 
-Then add a tiny entrypoint later if needed.
+### 2. Bounded execution
+
+Enough runner behavior to execute one prompt and capture the immediate execution facts.
+
+### 3. Execution-record writing
+
+Enough note policy to write one execution record in the V1 format defined by `tools/codex/V1_Execution_Record_Artifact.md`.
+
+### 4. Review write-back
+
+Enough manual workflow support to update that same record with the review facts defined by `tools/codex/V1_Run_Review_Gate.md`.
+
+### 5. Conservative queue progression
+
+Enough status logic to preserve one rule:
+
+* only an accepted reviewed run releases the next prompt
+
+Everything beyond those responsibilities should be presumed deferred unless it is required to preserve the V1 slice.
 
 ---
 
-## Recommended Responsibility Split
+## Implementation Order
 
-### `paths.py`
+The implementation order should follow the governing workflow and the queued design decisions:
 
-Owns:
+1. define the V1 review gate
+2. align the architecture document to the workflow, the execution record, and the review gate
+3. define the smallest bridge-runner change spec needed to emit the V1 execution record
+4. only then implement the bounded runner changes for that slice
+5. validate the slice and inspect the resulting run record before any broader refactor
 
-* repo-root discovery
-* locating `codex_prompts/`
-* locating `notes/`
-* validating required folders
+This order is conservative on purpose.
 
-Should not own:
+It reduces the risk of:
 
-* note parsing
-* prompt parsing
-* CLI logic
-
-### `prompts.py`
-
-Owns:
-
-* prompt discovery
-* filename validation
-* numeric prefix parsing
-* prompt sorting
-* prompt lookup by selector
-
-Should not own:
-
-* note history
-* note writing
-* terminal display
-
-### `notes.py`
-
-Owns:
-
-* note discovery
-* note filename parsing
-* latest-note selection
-* note writing
-* note naming convention
-
-Should not own:
-
-* prompt queue decisions
-* CLI logic
-
-### `status.py`
-
-Owns:
-
-* combining prompt data and note data
-* reconstructing current state
-* selecting unrun/failed/successful prompts
-
-Should not own:
-
-* printing or file writing
-
-### `retry.py`
-
-Owns:
-
-* collecting retry context
-* pairing original prompt with latest failed note
-* preparing a retry bundle
-
-Should not own:
-
-* scanning the repo broadly if other modules already do that
-
-### `cli.py`
-
-Owns:
-
-* argument parsing
-* wiring commands to lower-level modules
-* user-facing terminal behavior
-
-Should not own:
-
-* core business logic beyond orchestration
+* hard-coding the wrong note model
+* coupling queue progression to process exit
+* building convenience layers before the review loop is stable
+* refactoring modules before the actual V1 artifact boundary is settled
 
 ---
 
-## Minimal First Build
+## Validation And Review Posture
 
-If we build carefully, the first implementation should do only these things:
+Validation in V1 should stay small and inspectable.
 
-### Phase 1
+The minimum posture is:
 
-1. discover prompts
-2. discover notes
-3. reconstruct status
-4. print status table
+* confirm one prompt can be executed intentionally
+* confirm one execution record is written in the expected V1 shape
+* confirm execution status and review status remain separate
+* confirm a new record stops at `UNREVIEWED`
+* confirm only `ACCEPTED` would release the next prompt
+* confirm `REJECTED` stops progression and preserves enough evidence for the next human decision
 
-### Phase 2
+This is not a deep automation plan.
 
-5. show a prompt
-6. show next unrun prompt
-7. write a manual success/fail note
+It is the minimum validation needed to show that the workflow sequence is being honored:
 
-### Phase 3
-
-8. assemble retry context from failed note + original prompt
-
-That is enough to start using the system without committing to automation yet.
-
----
-
-## Naming Conventions
-
-### Prompt files
-
-```text
-001_smoke_test_pipeline.md
-002_repo_inventory_and_status.md
-```
-
-### Note files
-
-```text
-001_smoke_test_pipeline__SUCCESS__20260415_094500.md
-002_repo_inventory_and_status__FAIL__20260415_095212.md
-```
-
-These are simple, inspectable, and script-friendly.
+* execute
+* preserve evidence
+* review
+* decide whether to continue
 
 ---
 
-## Design Principles
+## Explicit Deferred Items
 
-### 1. Plain files first
+The following remain intentionally deferred until after the V1 slice is proven:
 
-Use the filesystem as the source of truth before introducing databases or hidden state.
+### Better architecture and reuse
 
-### 2. Small parts
+* per-repo configuration layers
+* reusable templates across many repositories
 
-Each file/module should have one clear job.
+### Richer metadata and content models
 
-### 3. Human-readable state
+* prompt frontmatter
+* sidecar metadata
+* machine-readable structured note bodies beyond the V1 markdown record
 
-A human should be able to inspect prompts and notes without special tooling.
+### Richer status and queue models
 
-### 4. Conservative defaults
+* `READY`
+* `RUNNING`
+* `BLOCKED`
+* `PARTIAL`
+* `SKIPPED`
+* `ARCHIVED`
+* dependency-aware release rules
 
-No automatic execution unless explicitly enabled later.
+### Retry intelligence
 
-### 5. Reusability
+* multi-run retry synthesis
+* recurring failure summaries
+* automatic retry context assembly beyond minimal linkage
 
-This should work as a template for future repositories.
+### Broader execution preparation
 
-### 6. Honest state
+* richer execution bundles
+* automated repo-context assembly
+* broader prompt packaging
 
-Do not pretend a task succeeded merely because a command ran.
+### Reporting and diagnostics
 
-### 7. Grow only when pressure demands it
+* aggregated queue reports
+* dashboards
+* cross-run audit summaries
+* separate diagnostic subsystems
 
-No extra cleverness until we truly need it.
+### Larger implementation restructuring
 
----
+* broad module decomposition
+* larger CLI surface
+* extensive folder expansion
 
-## Questions / Design Decisions To Review
-
-### A. What should count as identity?
-
-Should prompt identity be based only on filename stem, or should we eventually support IDs inside prompt files?
-
-### B. How rich should notes be?
-
-Do we want plain markdown only, or markdown plus structured frontmatter?
-
-### C. What statuses do we really want in V1?
-
-Is `UNRUN / SUCCESS / FAIL` enough at first?
-
-### D. How should retries work?
-
-Should a retry include only the latest failed note, or should it include a short history?
-
-### E. Should prompts ever depend on one another?
-
-If yes, that affects architecture early.
-
-### F. When do we introduce Codex execution?
-
-Do we want:
-
-* never in core tools
-* later as an adapter
-* later as an optional plugin layer
-
-### G. What belongs in notes versus separate logs?
-
-Human-facing narrative and machine-facing diagnostics may eventually deserve separate homes.
+These are extension paths, not V1 requirements.
 
 ---
 
-## Recommended Next Step
+## Extension Path After V1
 
-Before writing new code, review this architecture and decide:
+If V1 proves clean, the next steps should still remain bounded.
 
-1. the minimal V1 feature set
-2. the final folder layout for `tools/codex/`
-3. the exact status model for V1
-4. whether notes stay plain markdown only
-5. whether retries should include one failed note or a short chain
+A sensible post-V1 path would be:
 
-After that, implement only the smallest slice needed to make the workflow real.
+1. keep the execution record as the stable source artifact
+2. keep the review gate explicit
+3. add only the smallest runner changes needed to support that record reliably
+4. review whether any module split is justified by actual friction
+5. defer broader queue features until the single-run slice has been used enough to reveal real needs
 
----
-
-## Suggested Initial Build Target
-
-My current recommendation for the smallest clean starting point is:
-
-* `tools/codex/paths.py`
-* `tools/codex/prompts.py`
-* `tools/codex/notes.py`
-* `tools/codex/status.py`
-* `tools/codex/README.md`
-
-No CLI yet unless we decide it is truly needed.
-
-That would let us validate the architecture before we wrap it in commands.
-
----
-
-## Closing Thought
-
-The right next move is not “build the runner.”
-
-The right next move is:
-
-* define the pieces
-* define the responsibilities
-* define the boundaries
-* build the smallest useful slice
-
-That gives us something we can trust, reuse, and extend without regret.
-
+This keeps the architecture reusable and inspectable without turning the design document into a platform roadmap.
