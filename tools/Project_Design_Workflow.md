@@ -6,13 +6,13 @@ Define a repeatable workflow for turning an idea or architecture document into a
 
 This document is meant to sit beside architecture documents and help answer a practical question:
 
-**What are the steps between “this design makes sense” and “the thing works”?**
+**What are the steps between "this design makes sense" and "the thing works"?**
 
 ---
 
 ## Why This Exists
 
-Sometimes a project feels good at the architecture level but still feels fuzzy at the build level.
+Sometimes a project feels sound at the architecture level but still feels fuzzy at the build level.
 
 That happens because architecture is not the same thing as execution.
 
@@ -30,14 +30,15 @@ But architecture does not yet tell us:
 * what to test first
 * what can wait
 * how to know whether the design is holding
+* how to recover cleanly when a step fails
 
 This workflow bridges that gap.
 
 ---
 
-## Relationship to the Thought Garden
+## Relationship to a Larger Design Process
 
-This workflow does **not** replace the Thought Garden.
+This workflow does **not** replace broader project thinking.
 It fits inside it.
 
 A useful mapping looks like this:
@@ -46,7 +47,7 @@ A useful mapping looks like this:
 
 What are we trying to do?
 What hurts right now?
-What would “better” feel like?
+What would "better" feel like?
 
 ### 2. Goals
 
@@ -60,9 +61,9 @@ Examples:
 * architecture doc
 * workflow doc
 * module layout
-* prompt folder
+* interface sketch
 * notes folder
-* test prompt
+* validation checklist
 * first working slice
 
 ### 4. Tasks
@@ -73,16 +74,63 @@ Examples:
 * define V1 scope
 * define module boundaries
 * choose naming conventions
-* write `paths.py`
-* test prompt discovery
-* write note parser
+* write first thin component
+* validate one path end to end
+* capture review notes
 
-### 5. Code / Libraries
+### 5. Implementation
 
 Only after the earlier layers are stable do we write implementation.
 
-So the current project is not outside the Thought Garden at all.
-It is just sitting in a very explicit design phase before code is allowed onto the stage.
+So this workflow is not separate from design.
+It is the part that turns design into bounded execution.
+
+---
+
+## Core Principles
+
+### 1. Design before build
+
+Do not use implementation momentum to hide unclear thinking.
+
+### 2. Boundaries before breadth
+
+A project becomes safer when scope, responsibility, and deferral lines are visible.
+
+### 3. Thin slices before large pushes
+
+Prefer a bounded slice that proves something real over a large batch that creates many unknowns at once.
+
+### 4. Review between iterations
+
+Each bounded execution step should be inspected before the next one is issued.
+Do not assume a sequence is healthy just because the previous step completed.
+
+### 5. Validation is part of design
+
+Tests, inspections, examples, and acceptance checks are not extra work.
+They are how the design proves it is real.
+
+### 6. Bridge tooling is allowed, but subordinate
+
+Temporary or bridge tooling can be useful when it stays thin, inspectable, and reversible.
+It may help move work forward, gather evidence, or reduce manual friction.
+It should not become a substitute for architecture, clear interfaces, or good decomposition.
+
+### 7. Durable local history matters
+
+Notes, logs, reports, generated outputs, and similar local artifacts can serve as durable project memory.
+They help preserve decisions, validation results, failure patterns, and the reasoning behind refinements.
+
+### 8. Failure should produce analysis, not just retries
+
+When a step fails, the useful question is not only "how do we try again?"
+It is also "what did this failure reveal about the task, decomposition, criteria, or environment?"
+
+### 9. Resource use should be observed
+
+Project effort has a cost, whether that cost is human time, machine time, review effort, retries, execution size, or external spend.
+Large tasks should justify themselves.
 
 ---
 
@@ -92,7 +140,7 @@ Here is the recommended design workflow.
 
 ### Phase 1: Clarify the problem
 
-This is the “why are we doing this?” phase.
+This is the "why are we doing this?" phase.
 
 Questions:
 
@@ -110,7 +158,7 @@ Output:
 
 ### Phase 2: Define the system boundary
 
-This is the “what belongs in this project and what does not?” phase.
+This is the "what belongs in this project and what does not?" phase.
 
 Questions:
 
@@ -128,11 +176,11 @@ Output:
 
 ### Phase 3: Draft the architecture
 
-This is the “what pieces exist and what are their jobs?” phase.
+This is the "what pieces exist and what are their jobs?" phase.
 
 Questions:
 
-* What modules/components are needed?
+* What modules, components, or services are needed?
 * What is each one responsible for?
 * What should each one never own?
 * Where are the seams between parts?
@@ -141,13 +189,13 @@ Output:
 
 * architecture doc
 * responsibility split
-* proposed file/folder layout
+* proposed file, package, or interface layout
 
 ---
 
 ### Phase 4: Identify the minimum viable slice
 
-This is the “what is the smallest useful thing we can build that proves the design?” phase.
+This is the "what is the smallest useful thing we can build that proves the design?" phase.
 
 Questions:
 
@@ -159,20 +207,21 @@ Questions:
 Output:
 
 * V1 feature list
-* phase-by-phase build plan
+* initial build plan
 
 ---
 
 ### Phase 5: Define the artifacts
 
-This is the “what files or outputs must exist?” phase.
+This is the "what files or outputs must exist?" phase.
 
 Questions:
 
-* What markdown docs should exist?
-* What modules should exist?
-* What example prompts or test files should exist?
-* What outputs prove the pipe works?
+* What documents should exist?
+* What modules or interfaces should exist?
+* What examples, fixtures, or test inputs should exist?
+* What outputs prove the path works?
+* What notes, logs, or reports should be kept as durable project memory?
 
 Output:
 
@@ -183,13 +232,13 @@ Output:
 
 ### Phase 6: Sequence the work
 
-This is the “what order reduces pain and risk?” phase.
+This is the "what order reduces pain and risk?" phase.
 
 Questions:
 
 * What must come first because other things depend on it?
 * What can be tested independently?
-* What pieces should be proven before we add CLI or automation?
+* What pieces should be proven before automation or convenience layers are added?
 * What order keeps the build inspectable?
 
 Output:
@@ -201,57 +250,87 @@ Output:
 
 ### Phase 7: Define validation
 
-This is the “how will we know each layer works?” phase.
+This is the "how will we know each layer works?" phase.
 
 Questions:
 
-* What is the smoke test for each module?
+* What is the smoke test for each part?
 * What is a good manual test before automation?
 * What failure modes do we expect?
 * What evidence counts as success?
+* What review should happen before the next step begins?
 
 Output:
 
 * validation checklist
 * smoke tests
 * example inputs and outputs
+* review points between iterations
 
 ---
 
-### Phase 8: Build the first slice
+### Phase 8: Execute one bounded slice
 
 Only now do we begin implementation.
 
 Rules:
 
 * build one thin slice
-* test it
-* inspect it
-* adjust the design if reality disagrees
+* keep the task bounded and inspectable
+* use bridge tooling only when it remains thin and subordinate to the design
+* validate the slice
+* inspect the result before issuing the next step
 * do not sprint ahead because the first part felt good
 
 Output:
 
-* first working slice
-* notes about what the design got right/wrong
+* one completed slice
+* evidence of validation
+* notes about what the design got right or wrong
 
 ---
 
 ### Phase 9: Review and refine
 
-This is the “did the design survive contact with reality?” phase.
+This is the "did the design survive contact with reality?" phase.
 
 Questions:
 
 * What felt clean?
 * What felt awkward?
 * What assumptions broke?
-* What should be renamed, split, or deferred?
+* What should be renamed, split, simplified, or deferred?
+* What should change before the next bounded step?
 
 Output:
 
 * refinement notes
-* updated architecture if needed
+* updated architecture or scope if needed
+* revised next-step plan
+
+---
+
+## The Iteration Loop
+
+After the initial design work, many projects should move through a repeating bounded loop:
+
+1. clarify the next chunk
+2. define a bounded task
+3. state the success criteria
+4. execute
+5. validate and inspect results
+6. review what changed
+7. refine the plan
+8. issue the next bounded task only after review
+
+This loop should stay small enough that:
+
+* the task can be understood before execution
+* the result can be reviewed without guesswork
+* failure teaches something specific
+* refinement happens while context is still fresh
+
+If a project cannot explain the next chunk in a few clear sentences, the chunk is probably still too large.
 
 ---
 
@@ -287,87 +366,72 @@ What gets built first?
 
 How do we test each step?
 
-### 8. Extension path
+### 8. Review points
+
+Where do we stop and inspect before continuing?
+
+### 9. Extension path
 
 What comes later, but not now?
 
-That pattern is portable and should work for many future repos.
+That pattern is portable and should work across many projects.
 
 ---
 
-## Applying This to the Codex Prompt Workflow
+## Failure Analysis as Part of the Workflow
 
-For the current project, the decomposition looks like this.
+When a bounded step fails, do not treat the failure as noise.
+Capture it, inspect it, and decide whether the problem is in the task, the decomposition, the criteria, or the environment.
 
-### Purpose
+Useful questions include:
 
-Create a clean, reusable prompt workflow system for Codex work inside a repo.
+* Was the task too large?
+* Was the task poorly decomposed?
+* Were success criteria unclear or incomplete?
+* Did the task depend on hidden assumptions?
+* Was the failure caused by tooling or infrastructure rather than task difficulty?
+* Would a smaller or differently framed task have worked better?
+* Did the review happen too late?
+* Did retries produce new information, or only repeat cost?
 
-### Boundaries
+Useful outputs include:
 
-In now:
+* a short failure note or report
+* updated task boundaries
+* revised success criteria
+* a smaller follow-up slice
+* a decision to fix environment issues before retrying
 
-* prompt discovery
-* note discovery
-* status reconstruction
-* retry context preparation
-* conservative manual workflow
+A clean retry is often possible, but it should come after analysis rather than instead of it.
 
-Out for now:
+---
 
-* direct Codex execution
-* rich metadata system
-* dependency graphing
-* advanced logging
-* multi-repo orchestration
+## Resource and Cost Awareness
 
-### Components
+Projects benefit from tracking lightweight evidence about execution cost and quality.
+This does not need to be elaborate, but it should be enough to notice patterns.
 
-* `paths.py`
-* `prompts.py`
-* `notes.py`
-* `status.py`
-* later maybe `retry.py`
-* later maybe `cli.py`
+Examples of useful observations:
 
-### Artifacts
+* elapsed time
+* execution size
+* review effort
+* repeated retries
+* failure frequency
+* output quality
+* machine or service usage
 
-* architecture doc
-* workflow doc
-* prompt folder
-* notes folder
-* example prompts
-* minimal modules
-* validation notes
+In some environments, teams may also track:
 
-### Build order
+* token usage
+* compute time
+* API cost
+* artifact volume
 
-1. finalize architecture and workflow
-2. define V1 scope
-3. create folder layout
-4. implement `paths.py`
-5. implement `prompts.py`
-6. implement `notes.py`
-7. implement `status.py`
-8. manually validate status reconstruction
-9. add retry preparation
-10. add thin CLI only if needed
+The purpose is not accounting for its own sake.
+The purpose is to notice whether larger, more expensive, or less bounded tasks correlate with more failures, lower quality, or weaker reviewability.
 
-### Validation
-
-* can we discover prompt files?
-* can we discover note files?
-* can we reconstruct current prompt status correctly?
-* can we identify next unrun?
-* can we pair a failed prompt with its most recent failed note?
-
-### Extension path
-
-* structured note templates
-* dry-run bundle preparation
-* optional Codex adapter
-* dependency handling
-* reusable template packaging
+If those patterns appear, the workflow should respond by shrinking task size, clarifying criteria, or improving decomposition.
 
 ---
 
@@ -381,21 +445,29 @@ Do not build past that line yet.
 
 ### 2. What is the source of truth?
 
-Filesystem only? Filenames only? Markdown contents too?
+What artifacts, interfaces, or records define reality for this system?
 
-### 3. What is the stable identity of a prompt?
+### 3. What is the stable identity of each important object?
 
-Filename? Internal ID? Both?
+Names, IDs, paths, interfaces, and records should not be ambiguous.
 
 ### 4. What states do we actually need in V1?
 
 Probably fewer than we are tempted to add.
 
-### 5. What should be manually controlled?
+### 5. What should remain manually controlled?
 
 Human judgment should stay in the loop where truth is fuzzy.
 
-### 6. What is the next thing we are intentionally not building?
+### 6. What bridge tooling is acceptable?
+
+If temporary helpers are needed, how do we keep them thin, inspectable, and easy to replace?
+
+### 7. What history should be preserved?
+
+What notes, outputs, validation records, or failure reports will be worth having later?
+
+### 8. What is the next thing we are intentionally not building?
 
 This keeps the scope fence visible.
 
@@ -403,39 +475,24 @@ This keeps the scope fence visible.
 
 ## Design Workflow as a Reusable Template
 
-For future projects, a reliable progression is:
+For many projects, a reliable progression is:
 
 1. conversation
 2. problem statement
 3. goals
-4. scope / boundaries
+4. scope and boundaries
 5. architecture
-6. workflow / build plan
+6. workflow and build plan
 7. artifact list
 8. implementation sequence
 9. validation plan
-10. first build slice
-11. review / refinement
+10. bounded execution loop
+11. review and refinement
+12. failure analysis when needed
 
 This is slow in the beginning and fast later.
 It feels like more thought up front because it is.
 But it prevents the kind of momentum that sends a project downhill with shopping carts tied to its feet.
-
----
-
-## What Comes Next for This Project
-
-The next practical step is not coding yet.
-The next step is to turn the architecture into a **focused V1 build plan**.
-
-That means deciding:
-
-* exact V1 features
-* exact folder/module layout
-* exact naming rules
-* exact validation steps
-
-Once those are fixed, implementation becomes much safer.
 
 ---
 
@@ -450,6 +507,7 @@ Think clearly first.
 Name the parts.
 Set the boundaries.
 Choose the first slice.
+Review each iteration.
+Study failure instead of hiding it.
 Build only what is earned.
 Then move forward with confidence.
-
