@@ -1,0 +1,144 @@
+{
+  "tasks": [
+    {
+      "id": "T-001",
+      "goal": "G-001",
+      "title": "Create `Codex_Weather_Fusion` project directory with initial structure",
+      "description": "Add a new top-level folder named `Codex_Weather_Fusion` in the repository and create clean starter subfolders/files for `notebooks/`, `scripts/`, and `config/` (including placeholder files like `.gitkeep` where needed) so the project has a clear, maintainable baseline layout.",
+      "status": "todo"
+    },
+    {
+      "id": "T-002",
+      "goal": "G-002",
+      "title": "Create README.md with project scope and drought-vs-wet-year data-fusion context",
+      "description": "Add a top-level README.md that clearly documents the project goals, summarizes the 2012 Oklahoma drought context, explains how selected wet years are used for comparison, and states the purpose and expected outcomes of the data fusion workflow in concise, structured sections.",
+      "status": "todo"
+    },
+    {
+      "id": "T-003",
+      "goal": "G-003",
+      "title": "Create notebook skeleton with workflow markdown sections",
+      "description": "Add a new Jupyter notebook file named `01_weather_data_fusion.ipynb` containing ordered markdown headings for the workflow stages: data acquisition, cleaning, alignment, fusion, and visualization, plus a short introductory markdown cell that states the notebook purpose.",
+      "status": "todo"
+    },
+    {
+      "id": "T-004",
+      "goal": "G-004",
+      "title": "Create a shared Will Rogers station metadata module",
+      "description": "Add a single source-of-truth metadata object for Will Rogers World Airport (including station ID, ICAO code, latitude/longitude, and API dataset identifiers) in a dedicated constants/config file, export it with a typed interface/schema, and include concise inline documentation so all weather API integrations can import the same validated values.",
+      "status": "todo"
+    },
+    {
+      "id": "T-005",
+      "goal": "G-005",
+      "title": "Implement `fetch_noaa_daily_kokc` NOAA CDO client function",
+      "description": "Create a single function that calls the NOAA Climate Data Online Daily Summaries endpoint for station `GHCND:USW00013967` (KOKC), accepts `start_date`, `end_date`, and `token` inputs, requests only `TMAX`, `TMIN`, and `PRCP`, handles HTTP errors/timeouts with clear exceptions, and returns a normalized list of daily records keyed by date with temperature and precipitation values.",
+      "status": "todo"
+    },
+    {
+      "id": "T-006",
+      "goal": "G-006",
+      "title": "Implement NOAA ISD hourly fetch function for Will Rogers Airport",
+      "description": "Create a single function (e.g., `fetch_noaa_isd_hourly_will_rogers(start_utc, end_utc)`) that calls NOAA Integrated Surface Database data for station KOKC/Will Rogers Airport, validates inputs, retrieves records for the requested time range, parses them into structured hourly entries (timestamp, temperature, dew point, wind, pressure, precipitation as available), handles HTTP and parsing errors with clear exceptions, and returns a clean typed collection ready for downstream use.",
+      "status": "todo"
+    },
+    {
+      "id": "T-007",
+      "goal": "G-007",
+      "title": "Implement `fetch_ok_mesonet_observations` ingestion function",
+      "description": "Add a single ingestion function that accepts station IDs, date range, and variables, calls the Oklahoma Mesonet historical API endpoint, requests rainfall and soil moisture fields, validates HTTP/status errors, parses the response into a normalized tabular structure with timestamps and units, and returns the cleaned dataset with clear docstring, type hints, and minimal unit tests for success and failure cases.",
+      "status": "todo"
+    },
+    {
+      "id": "T-008",
+      "goal": "G-008",
+      "title": "Implement `fetch_nasa_power_climate_data` API client function",
+      "description": "Create a single function that accepts latitude, longitude, start/end dates, and a list of NASA POWER parameter codes (e.g., solar radiation and precipitation), builds the NASA POWER request URL, performs the HTTP GET with timeout/error handling, validates the response structure, and returns normalized climate values in a predictable dictionary/object format for downstream use.",
+      "status": "todo"
+    },
+    {
+      "id": "T-009",
+      "goal": "G-009",
+      "title": "Implement a unified weather-unit normalization function",
+      "description": "Create a single normalization function that accepts a weather record and source-unit metadata, then converts precipitation to millimeters, temperature to Celsius, and wind speed to meters per second, returning a validated standardized record with clear handling for missing or invalid values.",
+      "status": "todo"
+    },
+    {
+      "id": "T-010",
+      "goal": "G-010",
+      "title": "Implement `clean_weather_data(df)` with missing, invalid, and outlier handling",
+      "description": "Create a single data-cleaning function that (1) standardizes known missing markers (e.g., empty strings, -9999) to NaN, (2) validates core weather columns and nulls physically impossible readings (such as humidity < 0 or > 100), and (3) caps extreme numeric outliers per column using an IQR-based rule with configurable thresholds; return a cleaned copy and include concise docstring/tests for expected behavior.",
+      "status": "todo"
+    },
+    {
+      "id": "T-011",
+      "goal": "G-011",
+      "title": "Implement `build_daily_time_index` to normalize timestamps and align records",
+      "description": "Create a single utility function that takes one or more datasets and a timestamp column per dataset, parses all timestamps into timezone-aware `datetime` values in UTC, floors them to daily granularity, and reindexes each dataset onto a shared continuous daily index spanning the global min/max date. The function should validate parse failures, handle duplicates deterministically, and return aligned datasets with the common index plus a report of dropped/invalid rows.",
+      "status": "todo"
+    },
+    {
+      "id": "T-012",
+      "goal": "G-012",
+      "title": "Implement date-indexed weather dataset fusion function",
+      "description": "Create a single function (e.g., `merge_weather_datasets(noaa_df, mesonet_df, nasa_df)`) that validates required date columns, normalizes each dataset to a common daily datetime index, aligns and joins all sources on that index with clear source-prefixed column names, and returns one unified pandas DataFrame.",
+      "status": "todo"
+    },
+    {
+      "id": "T-013",
+      "goal": "G-013",
+      "title": "Implement `compute_derived_climate_variables()` for cumulative rainfall, temperature anomalies, and rainfall deficit",
+      "description": "Create a single function that takes a climate time-series dataset and returns three derived columns: cumulative rainfall (running sum of rainfall), temperature anomaly (observed temperature minus baseline mean for matching period), and rainfall deficit (expected rainfall minus observed rainfall, clipped at zero if required by domain rules). Include input validation, clear docstring/type hints, and unit tests for normal and edge cases (missing values, empty input, and unsorted dates).",
+      "status": "todo"
+    },
+    {
+      "id": "T-014",
+      "goal": "G-014",
+      "title": "Implement Oklahoma 2012 drought-year weather extraction and normalization function",
+      "description": "Create a single function that filters raw weather records to Oklahoma observations between 2012-01-01 and 2012-12-31, validates required fields (date, location, core weather metrics), standardizes units and column names, and returns a clean dataset ready for downstream comparison analysis.",
+      "status": "todo"
+    },
+    {
+      "id": "T-015",
+      "goal": "G-015",
+      "title": "Implement wet-year weather extraction function",
+      "description": "Add a single function that filters the historical weather dataset for one configurable wet comparison year (default to 2019, optionally 2015), selects the same geographic scope and variables used for the 2012 drought dataset, and writes the result to a versioned output file with basic validation (non-empty rows and required columns present).",
+      "status": "todo"
+    },
+    {
+      "id": "T-016",
+      "goal": "G-016",
+      "title": "Implement precipitation comparison plotting function",
+      "description": "Create a single function that accepts daily precipitation data for drought years and wet years, computes cumulative precipitation series for each group, and generates a two-panel visualization: panel 1 overlays daily rainfall patterns, panel 2 overlays cumulative precipitation curves. Include clear axis labels, legends, consistent date alignment, and a docstring describing inputs, outputs, and assumptions.",
+      "status": "todo"
+    },
+    {
+      "id": "T-017",
+      "goal": "G-017",
+      "title": "Implement temperature anomaly plotting function",
+      "description": "Create a single function that takes observed temperature time-series and historical average baseline data, computes anomaly values (observed minus baseline) for each timestamp during the drought period, and renders a clear line chart with zero-reference, labeled axes, legend, and date range filtering. Include input validation and unit tests for anomaly calculation and plotting data preparation.",
+      "status": "todo"
+    },
+    {
+      "id": "T-018",
+      "goal": "G-018",
+      "title": "Implement source-agreement plotting function",
+      "description": "Add a single function that accepts aligned NOAA, Mesonet, and NASA observation series for one metric (e.g., temperature), computes pairwise differences and correlation values, and renders a reusable visualization (time-series overlay plus agreement summary panel) with clear labels, legend, and basic input validation.",
+      "status": "todo"
+    },
+    {
+      "id": "T-019",
+      "goal": "G-019",
+      "title": "Implement final drought dashboard cell with multi-indicator overlays",
+      "description": "Add a single notebook section (one function plus one rendering cell) that builds the final drought visualization dashboard by combining rainfall deficit, cumulative precipitation, and drought intensity into synchronized plots with clear labels, legends, and date alignment; include input validation for required columns and brief inline documentation to keep the section maintainable.",
+      "status": "todo"
+    },
+    {
+      "id": "T-020",
+      "goal": "G-020",
+      "title": "Add `REPRODUCIBILITY.md` with full pipeline setup requirements",
+      "description": "Create a `REPRODUCIBILITY.md` file that lists all required API key environment variables (names only, no secrets), exact dependency installation steps (including pinned versions and lockfile usage), and end-to-end commands to run the data pipeline from a clean machine, including prerequisite tools, expected input/output locations, and a quick verification checklist.",
+      "status": "todo"
+    }
+  ]
+}

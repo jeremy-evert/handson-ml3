@@ -1,0 +1,107 @@
+{
+  "project": "oklahoma_weather_data_fusion",
+  "location": "Codex_Weather_Fusion",
+  "description": "Build a Jupyter notebook workflow that pulls weather data from multiple sources, cleans and aligns the data, fuses the datasets together, and visualizes drought conditions in Oklahoma using Will Rogers World Airport (KOKC) as the primary station.",
+  "goals": [
+    {
+      "id": "G-001",
+      "title": "Create Weather Fusion Project Folder",
+      "description": "Create a new folder named Codex_Weather_Fusion in the repository to hold notebooks, scripts, and configuration files related to the weather data fusion project."
+    },
+    {
+      "id": "G-002",
+      "title": "Create Project README",
+      "description": "Write a README.md describing the goals of the project, the drought of 2012 in Oklahoma, the comparison with wet years, and the purpose of the data fusion workflow."
+    },
+    {
+      "id": "G-003",
+      "title": "Create Jupyter Notebook Skeleton",
+      "description": "Create an initial notebook named 01_weather_data_fusion.ipynb with markdown sections outlining the workflow: data acquisition, cleaning, alignment, fusion, and visualization."
+    },
+    {
+      "id": "G-004",
+      "title": "Define Station Metadata",
+      "description": "Define metadata for the Will Rogers World Airport weather station including station ID, ICAO code, coordinates, and dataset identifiers used across multiple weather APIs."
+    },
+    {
+      "id": "G-005",
+      "title": "Implement NOAA Daily Data Pull",
+      "description": "Build a function to retrieve daily weather observations from NOAA Climate Data Online for the KOKC station including temperature and precipitation."
+    },
+    {
+      "id": "G-006",
+      "title": "Implement NOAA Hourly Data Pull",
+      "description": "Create a function that retrieves hourly weather data from the NOAA Integrated Surface Database for the Will Rogers Airport station."
+    },
+    {
+      "id": "G-007",
+      "title": "Implement Oklahoma Mesonet Data Pull",
+      "description": "Create a data ingestion function that pulls historical observations from the Oklahoma Mesonet system including rainfall and soil moisture data."
+    },
+    {
+      "id": "G-008",
+      "title": "Implement NASA Climate Data Pull",
+      "description": "Create a function that retrieves climate variables such as solar radiation and precipitation from the NASA POWER climate dataset."
+    },
+    {
+      "id": "G-009",
+      "title": "Normalize Weather Data Units",
+      "description": "Standardize units across all datasets including converting precipitation to millimeters, temperature to Celsius, and wind speed to meters per second."
+    },
+    {
+      "id": "G-010",
+      "title": "Clean Missing Data",
+      "description": "Develop data cleaning routines that handle missing values, invalid readings, and extreme outliers in the weather datasets."
+    },
+    {
+      "id": "G-011",
+      "title": "Standardize Time Index",
+      "description": "Convert all timestamps to a consistent datetime format and align datasets to a common daily time index."
+    },
+    {
+      "id": "G-012",
+      "title": "Merge Weather Datasets",
+      "description": "Develop a data fusion process that merges NOAA, Mesonet, and NASA datasets into a unified dataframe indexed by date."
+    },
+    {
+      "id": "G-013",
+      "title": "Calculate Derived Climate Variables",
+      "description": "Compute additional climate metrics including cumulative rainfall, temperature anomalies, and rainfall deficits."
+    },
+    {
+      "id": "G-014",
+      "title": "Create Drought Year Dataset",
+      "description": "Extract weather data for the 2012 drought year in Oklahoma and prepare it for comparison analysis."
+    },
+    {
+      "id": "G-015",
+      "title": "Create Wet Year Comparison Dataset",
+      "description": "Extract weather data for a wet year such as 2015 or 2019 for comparison with the 2012 drought conditions."
+    },
+    {
+      "id": "G-016",
+      "title": "Generate Rainfall Comparison Visualizations",
+      "description": "Create plots comparing precipitation patterns between drought and wet years including daily rainfall and cumulative precipitation."
+    },
+    {
+      "id": "G-017",
+      "title": "Generate Temperature Anomaly Visualizations",
+      "description": "Plot temperature deviations from historical averages to show heat stress during the drought period."
+    },
+    {
+      "id": "G-018",
+      "title": "Build Multi-Source Agreement Visualizations",
+      "description": "Compare observations from NOAA, Mesonet, and NASA datasets to evaluate agreement between weather sources."
+    },
+    {
+      "id": "G-019",
+      "title": "Create Final Drought Visualization Dashboard",
+      "description": "Build a final notebook section that visualizes drought intensity using multiple climate indicators including rainfall deficit and cumulative precipitation."
+    },
+    {
+      "id": "G-020",
+      "title": "Ensure Reproducibility",
+      "description": "Document API keys, dependencies, and instructions needed to reproduce the data pipeline from scratch."
+    }
+  ]
+}
