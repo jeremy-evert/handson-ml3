@@ -4,3 +4,14 @@
 *.py text eol=lf
 *.ipynb text eol=lf
 *.ps1 text eol=crlf
+
+# Binary assets should not be diffed as text.
+*.pdf binary
+*.zip binary
+*.dll binary
+*.exe binary
+*.lib binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
