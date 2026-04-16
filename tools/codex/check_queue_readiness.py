@@ -66,6 +66,10 @@ class ReadinessError(Exception):
     pass
 
 
+def format_prefixes(prefixes: list[int]) -> str:
+    return ", ".join(f"{prefix:03d}" for prefix in prefixes)
+
+
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
@@ -244,6 +248,16 @@ def discover_run_records(root: Path) -> list[RunRecord]:
     return records
 
 
+def discover_legacy_success_prefixes(root: Path) -> set[int]:
+    notes_dir = root / NOTES_DIR
+    prefixes: set[int] = set()
+    for path in sorted(notes_dir.glob("*__SUCCESS__*.md")):
+        match = PROMPT_NAME_RE.match(path.stem)
+        if match is not None:
+            prefixes.add(int(match.group("prefix")))
+    return prefixes
+
+
 def latest_record_for_prompt(records: list[RunRecord], prompt: PromptEntry) -> RunRecord | None:
     relevant = [record for record in records if record.prompt_file == prompt.label]
     if not relevant:
@@ -323,7 +337,42 @@ def evaluate_readiness(
     )
 
 
-def print_summary(prompts: list[PromptEntry], result: ReadinessResult) -> None:
+def build_default_gap_explanation(
+    prompts: list[PromptEntry],
+    records: list[RunRecord],
+    legacy_success_prefixes: set[int],
+    target: PromptEntry,
+) -> str | None:
+    later_v1_prompts = [prompt for prompt in prompts if prompt.prefix > target.prefix]
+    if not any(latest_record_for_prompt(records, prompt) is not None for prompt in later_v1_prompts):
+        return None
+
+    gap_prefixes = [
+        prompt.prefix
+        for prompt in prompts
+        if prompt.prefix >= target.prefix and latest_record_for_prompt(records, prompt) is None
+    ]
+    if not gap_prefixes:
+        return None
+
+    surprising_prefixes = [prefix for prefix in gap_prefixes if prefix in legacy_success_prefixes]
+    if not surprising_prefixes:
+        return None
+
+    return (
+        "Queue note: default selection uses only V1 execution records in notes/. "
+        f"Legacy __SUCCESS__ notes do not count as V1 queue history, so prompts "
+        f"{format_prefixes(surprising_prefixes)} still count as missing V1 evidence "
+        "and can pull the default target earlier than older notes suggest."
+    )
+
+
+def print_summary(
+    prompts: list[PromptEntry],
+    result: ReadinessResult,
+    *,
+    default_gap_explanation: str | None = None,
+) -> None:
     print("Ordered prompts:")
     for prompt in prompts:
         print(f"- {prompt.prefix:03d}: {prompt.label}")
@@ -341,6 +390,8 @@ def print_summary(prompts: list[PromptEntry], result: ReadinessResult) -> None:
     print(f"Latest run review_status: {latest_review_status}")
     print(f"Ready: {'YES' if result.ready else 'NO'}")
     print(f"Reason: {result.reason}")
+    if default_gap_explanation:
+        print(default_gap_explanation)
 
 
 def main() -> int:
@@ -349,9 +400,23 @@ def main() -> int:
         root = repo_root()
         prompts = discover_prompts(root)
         records = discover_run_records(root)
+        using_default_target = args.prompt is None
         target = resolve_prompt(prompts, args.prompt) if args.prompt else default_target(prompts, records)
         result = evaluate_readiness(prompts, records, target)
-        print_summary(prompts, result)
+        default_gap_explanation = None
+        if using_default_target:
+            legacy_success_prefixes = discover_legacy_success_prefixes(root)
+            default_gap_explanation = build_default_gap_explanation(
+                prompts,
+                records,
+                legacy_success_prefixes,
+                target,
+            )
+        print_summary(
+            prompts,
+            result,
+            default_gap_explanation=default_gap_explanation,
+        )
         return 0
     except ReadinessError as exc:
         return fail(str(exc))
