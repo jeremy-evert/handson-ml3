@@ -58,6 +58,8 @@ Finally, start Jupyter:
 
 If you need further instructions, read the [detailed installation instructions](INSTALL.md).
 
+If you want to render Graphviz diagrams locally, install Graphviz using your OS package manager or Conda environment rather than relying on bundled binaries. On Windows, if Graphviz is installed in a non-standard location, set the `GRAPHVIZ_BIN` environment variable to its `bin` directory before running the relevant notebook cells.
+
 # FAQ
 
 **Which Python version should I use?**
