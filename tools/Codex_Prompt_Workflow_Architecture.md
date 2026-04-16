@@ -154,6 +154,18 @@ That record is the minimum durable run artifact.
 
 No additional required queue file, database, or sidecar should be introduced in V1.
 
+### 6. Current V1 helper scripts
+
+The current implemented V1 toolset is:
+
+* `tools/codex/run_prompt.py` for bounded execution and execution-record creation
+* `tools/codex/review_run.py` for manual review write-back into the same record
+* `tools/codex/check_queue_readiness.py` for conservative next-prompt readiness checks
+* `tools/codex/list_review_backlog.py` for review backlog inspection from `notes/`
+
+These helpers operate on the same markdown execution-record contract.
+They are part of the current V1 workflow surface, not future placeholders.
+
 ---
 
 ## Minimum Viable Slice
@@ -350,6 +362,13 @@ Enough status logic to preserve one rule:
 * only an accepted reviewed run releases the next prompt
 
 Everything beyond those responsibilities should be presumed deferred unless it is required to preserve the V1 slice.
+
+The current implementation keeps those responsibilities in a small script set rather than a larger platform layer:
+
+* `run_prompt.py`
+* `review_run.py`
+* `check_queue_readiness.py`
+* `list_review_backlog.py`
 
 ---
 

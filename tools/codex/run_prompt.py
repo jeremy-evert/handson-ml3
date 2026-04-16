@@ -10,6 +10,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from v1_record_validation import validate_record_text
+
 
 PROMPTS_DIR = "codex_prompts"
 NOTES_DIR = "notes"
@@ -214,6 +216,7 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
+    validate_record_text(record_path.read_text(encoding="utf-8"), source=record_path)
 
     print(record_path)
     return return_code

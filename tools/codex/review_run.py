@@ -8,41 +8,15 @@ import re
 import sys
 from pathlib import Path
 
+from v1_record_validation import REVIEW_STATUS_VALUES, validate_record_text
 
-REVIEW_STATUSES = {"ACCEPTED", "REJECTED"}
+
+REVIEW_STATUSES = REVIEW_STATUS_VALUES - {"UNREVIEWED"}
 FAILURE_FIELDS = (
     "failure_type",
     "failure_symptom",
     "likely_cause",
     "recommended_next_action",
-)
-REQUIRED_FIELDS = (
-    "run_id",
-    "prompt_file",
-    "prompt_stem",
-    "started_at_utc",
-    "execution_status",
-    "finished_at_utc",
-    "runner",
-    "return_code",
-    "retry_of_run_id",
-    "review_status",
-    "review_summary",
-    "reviewed_by",
-    "reviewed_at_utc",
-    *FAILURE_FIELDS,
-    "elapsed_seconds",
-    "final_output_char_count",
-    "stderr_char_count",
-)
-REQUIRED_SECTIONS = (
-    "## Execution Facts",
-    "## Review Facts",
-    "## Failure Analysis",
-    "## Resource / Cost Facts",
-    "## Prompt Text",
-    "## Codex Final Output",
-    "## Stderr",
 )
 
 
@@ -119,24 +93,6 @@ def validate_record_path(record_path: Path) -> None:
         raise ValueError(f"record must be under {notes_dir}") from exc
 
 
-def validate_v1_record_structure(text: str) -> None:
-    if not text.startswith("# "):
-        raise ValueError("record does not start with a markdown title")
-
-    positions: list[int] = []
-    for section in REQUIRED_SECTIONS:
-        pos = text.find(section)
-        if pos == -1:
-            raise ValueError(f"record is missing section: {section}")
-        positions.append(pos)
-    if positions != sorted(positions):
-        raise ValueError("record sections are out of the expected V1 order")
-
-    for field in REQUIRED_FIELDS:
-        if re.search(rf"^- {re.escape(field)}:", text, flags=re.MULTILINE) is None:
-            raise ValueError(f"record is missing field line: {field}")
-
-
 def replace_field(text: str, field: str, value: str | None, *, code: bool = False) -> str:
     rendered = f"`{value}`" if code and value else (value or "")
     pattern = re.compile(rf"(?m)^- {re.escape(field)}:.*$")
@@ -183,12 +139,13 @@ def main() -> int:
         record_path = resolve_record_path(args.record)
         validate_record_path(record_path)
         text = record_path.read_text(encoding="utf-8")
-        validate_v1_record_structure(text)
+        validate_record_text(text, source=record_path)
 
         updated = text
         for field, (value, code) in build_updates(args).items():
             updated = replace_field(updated, field, value, code=code)
 
+        validate_record_text(updated, source=record_path)
         record_path.write_text(updated, encoding="utf-8")
     except ValueError as exc:
         return fail(str(exc))

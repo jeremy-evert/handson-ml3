@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the smallest change set for [baby_run_prompt.py](/data/git/handson-ml3/tools/codex/baby_run_prompt.py) so the current bridge runner writes a V1 execution record in `notes/` without a broader refactor.
+Describe the current V1 bridge runner and adjacent helpers so this spec matches the implemented workflow without a broader refactor.
 
 The target outcome is:
 
@@ -14,7 +14,7 @@ The target outcome is:
 
 ## Scope
 
-This spec covers only the current bridge runner at [baby_run_prompt.py](/data/git/handson-ml3/tools/codex/baby_run_prompt.py).
+This spec covers the current V1 runner at [run_prompt.py](/data/git/handson-ml3/tools/codex/run_prompt.py) and the small helper scripts that operate on the same execution-record contract.
 
 It defines:
 
@@ -24,22 +24,32 @@ It defines:
 - the manual review fields the runner should initialize for later completion
 - the minimal mapping from subprocess result to execution status
 - the minimal metrics to capture now
+- the current helper support around review write-back, queue readiness, and review backlog inspection
 
 ## Current Behavior Summary
 
-The current runner:
+The current runner at `tools/codex/run_prompt.py`:
 
 - resolves one prompt path from an argument using the existing lookup rules
 - validates that `codex_prompts/` and `notes/` exist
 - reads the prompt text from the selected file
 - runs `codex exec -C <repo_root> --output-last-message <tempfile> -`
 - captures subprocess return code, last-message output, and stderr
-- writes one markdown note into `notes/`
-- encodes `SUCCESS` or `FAILED` into the filename and note body based only on return code
+- writes one markdown execution record into `notes/`
+- uses base run identity `<prompt_stem>__<started_at_utc>`
+- adds a numeric suffix such as `__2` only when needed to avoid same-second collisions for the same prompt
+- initializes `review_status: UNREVIEWED`
 - prints the written note path
 - exits with the subprocess return code
 
-The current gap is that the note conflates execution completion with outcome labeling and does not initialize the V1 review gate.
+The current helper set also includes:
+
+- `tools/codex/review_run.py` for manual review write-back into the same record
+- `tools/codex/check_queue_readiness.py` for conservative readiness checks
+- `tools/codex/list_review_backlog.py` for backlog inspection from `notes/`
+
+The current gap is therefore no longer missing helper support.
+The remaining need is only to keep this document aligned to the implemented V1 behavior.
 
 ## Required V1 Changes
 
@@ -52,6 +62,11 @@ The runner should stop writing filenames in the form:
 It should instead write:
 
 `notes/<prompt_stem>__<started_at_utc>.md`
+
+This is the base V1 identity.
+If that path already exists for the same prompt and second, `run_prompt.py` appends a numeric suffix:
+
+`notes/<prompt_stem>__<started_at_utc>__2.md`
 
 This filename is the run's stable identity carrier and must not encode:
 
@@ -122,12 +137,14 @@ This spec does not authorize:
 
 - splitting the runner into multiple modules
 - a larger CLI redesign
-- queue progression logic beyond initializing `review_status: UNREVIEWED`
-- automatic review write-back
+- new queue states or queue engines beyond the current V1 readiness rule
 - retry orchestration
 - dependency-aware scheduling
 - broader note/history discovery logic
 - structured sidecars, JSON records, or databases
+
+This document is an alignment spec for the current V1 slice.
+It is not a request to redesign the already-implemented helper scripts.
 
 ## Exact Record Shape
 
@@ -153,7 +170,7 @@ Suggested format:
 
 - execution_status: `<EXECUTED|EXECUTION_FAILED>`
 - finished_at_utc: `<finished_at_utc>`
-- runner: `tools/codex/baby_run_prompt.py`
+- runner: `tools/codex/run_prompt.py`
 - return_code: `<int>`
 - retry_of_run_id: ``
 ```
@@ -235,7 +252,8 @@ If stderr is empty:
 
 ### Run identity mapping
 
-- `run_id` -> `f"{prompt_path.stem}__{started_at_utc}"`
+- base V1 identity -> `f"{prompt_path.stem}__{started_at_utc}"`
+- `run_id` -> base identity unless a same-second collision exists for the same prompt, then `f"{base_run_id}__{n}"`
 - filename -> `notes/{run_id}.md`
 - `prompt_stem` -> `prompt_path.stem`
 - `started_at_utc` -> timestamp captured immediately before `run_codex(...)`
@@ -249,7 +267,7 @@ This is the smallest precise mapping that preserves current prompt resolution be
 
 ### Execution mapping
 
-- `runner` -> literal `tools/codex/baby_run_prompt.py`
+- `runner` -> literal `tools/codex/run_prompt.py`
 - `return_code` -> subprocess return code from `subprocess.run(...)`
 - `execution_status` -> `EXECUTED` when return code is `0`, else `EXECUTION_FAILED`
 - `finished_at_utc` -> timestamp captured immediately after `run_codex(...)` returns
@@ -314,31 +332,14 @@ The following current behaviors should stay as they are:
 
 These preserved behaviors keep the implementation bridge-sized and avoid a premature runner redesign.
 
-## Open Questions To Resolve Before Implementation
+## Current Helper Support Around The Runner
 
-### 1. Timestamp format precision
+The current V1 workflow around the runner is:
 
-The current runner uses second precision: `YYYYMMDD_HHMMSS`.
-This matches the documented V1 examples and is likely sufficient, but repeated same-second runs of the same prompt would collide.
+1. `tools/codex/run_prompt.py` writes the execution record with `review_status: UNREVIEWED`
+2. `tools/codex/review_run.py` writes back `ACCEPTED` or `REJECTED` review fields into that same file
+3. `tools/codex/check_queue_readiness.py` evaluates whether the next prompt is ready under the V1 review gate
+4. `tools/codex/list_review_backlog.py` reports the current review backlog from `notes/`
 
-Decision needed:
-
-- keep second precision for strict alignment with the current V1 record doc, or
-- add a small collision-avoidance suffix if a file already exists
-
-The narrower V1 choice is to keep the current format and fail fast on collision unless this becomes a real issue.
-
-### 2. Blank-value formatting convention
-
-This spec uses empty field values for manual fields.
-Implementation should keep that representation consistent across:
-
-- empty list-style fields
-- empty sections
-- review write-back later
-
-Decision needed:
-
-- use blank bullet values exactly as shown in this spec
-
-No other open questions need to block implementation.
+These helpers are intentionally small.
+They do not introduce a larger orchestration layer, but they do mean review write-back, readiness checking, and backlog listing are implemented parts of the current V1 slice.

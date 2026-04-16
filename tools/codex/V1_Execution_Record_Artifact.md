@@ -51,6 +51,8 @@ Why this is enough for V1:
 - it does not depend on later review outcome
 - it can be created cheaply by the bridge runner
 
+`tools/codex/run_prompt.py` uses that base identity and adds a numeric suffix such as `__2` only when needed to avoid a same-second filename collision for the same prompt.
+
 The filename should use the same stable identity and should not encode accepted or rejected review outcome.
 
 ## Required Fields

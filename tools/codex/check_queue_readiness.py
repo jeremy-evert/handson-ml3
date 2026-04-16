@@ -8,27 +8,12 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from v1_record_validation import V1Record, ValidationError, parse_record_file
+
 
 PROMPTS_DIR = "codex_prompts"
 NOTES_DIR = "notes"
-REQUIRED_RECORD_FIELDS = (
-    "run_id",
-    "prompt_file",
-    "prompt_stem",
-    "started_at_utc",
-    "execution_status",
-    "review_status",
-)
-IDENTITY_FIELDS = (
-    "run_id",
-    "prompt_file",
-    "prompt_stem",
-    "started_at_utc",
-)
-EXECUTION_STATUSES = {"EXECUTED", "EXECUTION_FAILED"}
-REVIEW_STATUSES = {"UNREVIEWED", "ACCEPTED", "REJECTED"}
 PROMPT_NAME_RE = re.compile(r"^(?P<prefix>\d+)_")
-TIMESTAMP_RE = re.compile(r"^\d{8}_\d{6}$")
 
 
 @dataclass(frozen=True)
@@ -42,22 +27,10 @@ class PromptEntry:
 
 
 @dataclass(frozen=True)
-class RunRecord:
-    path: Path
-    run_id: str
-    prompt_file: str
-    prompt_stem: str
-    started_at_utc: str
-    execution_status: str
-    review_status: str
-    run_suffix: int
-
-
-@dataclass(frozen=True)
 class ReadinessResult:
     target: PromptEntry
     previous: PromptEntry | None
-    latest_record: RunRecord | None
+    latest_record: V1Record | None
     ready: bool
     reason: str
 
@@ -151,98 +124,17 @@ def resolve_prompt(prompts: list[PromptEntry], prompt_arg: str) -> PromptEntry:
     raise ReadinessError(f"prompt not found: {trimmed}")
 
 
-def parse_field_line(text: str, field: str) -> str | None:
-    match = re.search(rf"(?m)^- {re.escape(field)}:\s*(.*)$", text)
-    if match is None:
-        return None
-
-    value = match.group(1).strip()
-    if len(value) >= 2 and value.startswith("`") and value.endswith("`"):
-        return value[1:-1]
-    return value
-
-
-def parse_run_suffix(prompt_stem: str, started_at_utc: str, run_id: str) -> int:
-    base_run_id = f"{prompt_stem}__{started_at_utc}"
-    if run_id == base_run_id:
-        return 1
-
-    suffix_match = re.fullmatch(rf"{re.escape(base_run_id)}__(\d+)", run_id)
-    if suffix_match is None:
-        raise ReadinessError(f"run_id does not match V1 identity pattern: {run_id}")
-    return int(suffix_match.group(1))
-
-
-def parse_record_file(root: Path, path: Path) -> RunRecord | None:
-    text = path.read_text(encoding="utf-8")
-    has_execution_section = "## Execution Facts" in text
-    has_review_section = "## Review Facts" in text
-    if not has_execution_section and not has_review_section:
-        return None
-    if has_execution_section != has_review_section:
-        raise ReadinessError(
-            f"record-like note has incomplete V1 sections: {path.relative_to(root).as_posix()}"
-        )
-
-    header_block = text.split("\n## ", 1)[0]
-    identity_values = {field: parse_field_line(header_block, field) for field in IDENTITY_FIELDS}
-    if identity_values["run_id"] is None:
-        return None
-
-    metadata_block = text.split("\n## Prompt Text\n", 1)[0]
-    values = {field: parse_field_line(metadata_block, field) for field in REQUIRED_RECORD_FIELDS}
-
-    missing_fields = [field for field, value in values.items() if value is None]
-    if missing_fields:
-        raise ReadinessError(
-            f"record-like note is missing required V1 fields: {path.relative_to(root).as_posix()} "
-            f"missing {', '.join(missing_fields)}"
-        )
-
-    run_id = values["run_id"] or ""
-    prompt_file = values["prompt_file"] or ""
-    prompt_stem = values["prompt_stem"] or ""
-    started_at_utc = values["started_at_utc"] or ""
-    execution_status = values["execution_status"] or ""
-    review_status = values["review_status"] or ""
-
-    if not TIMESTAMP_RE.fullmatch(started_at_utc):
-        raise ReadinessError(
-            f"record has invalid started_at_utc timestamp: {path.relative_to(root).as_posix()}"
-        )
-    if execution_status not in EXECUTION_STATUSES:
-        raise ReadinessError(
-            f"record has invalid execution_status: {path.relative_to(root).as_posix()}"
-        )
-    if review_status not in REVIEW_STATUSES:
-        raise ReadinessError(f"record has invalid review_status: {path.relative_to(root).as_posix()}")
-
-    prompt_path = Path(prompt_file)
-    if prompt_path.stem != prompt_stem:
-        raise ReadinessError(
-            f"record prompt_file/prompt_stem mismatch: {path.relative_to(root).as_posix()}"
-        )
-
-    return RunRecord(
-        path=path.relative_to(root),
-        run_id=run_id,
-        prompt_file=prompt_file,
-        prompt_stem=prompt_stem,
-        started_at_utc=started_at_utc,
-        execution_status=execution_status,
-        review_status=review_status,
-        run_suffix=parse_run_suffix(prompt_stem, started_at_utc, run_id),
-    )
-
-
-def discover_run_records(root: Path) -> list[RunRecord]:
+def discover_run_records(root: Path) -> list[V1Record]:
     notes_dir = root / NOTES_DIR
     if not notes_dir.exists():
         raise ReadinessError(f"missing notes directory: {notes_dir}")
 
-    records: list[RunRecord] = []
+    records: list[V1Record] = []
     for path in sorted(notes_dir.glob("*.md")):
-        record = parse_record_file(root, path)
+        try:
+            record = parse_record_file(path)
+        except ValidationError as exc:
+            raise ReadinessError(str(exc)) from exc
         if record is not None:
             records.append(record)
     return records
@@ -258,14 +150,14 @@ def discover_legacy_success_prefixes(root: Path) -> set[int]:
     return prefixes
 
 
-def latest_record_for_prompt(records: list[RunRecord], prompt: PromptEntry) -> RunRecord | None:
+def latest_record_for_prompt(records: list[V1Record], prompt: PromptEntry) -> V1Record | None:
     relevant = [record for record in records if record.prompt_file == prompt.label]
     if not relevant:
         return None
     return max(relevant, key=lambda record: (record.started_at_utc, record.run_suffix))
 
 
-def default_target(prompts: list[PromptEntry], records: list[RunRecord]) -> PromptEntry:
+def default_target(prompts: list[PromptEntry], records: list[V1Record]) -> PromptEntry:
     for index, prompt in enumerate(prompts):
         if index == 0:
             latest = latest_record_for_prompt(records, prompt)
@@ -287,7 +179,7 @@ def default_target(prompts: list[PromptEntry], records: list[RunRecord]) -> Prom
 
 def evaluate_readiness(
     prompts: list[PromptEntry],
-    records: list[RunRecord],
+    records: list[V1Record],
     target: PromptEntry,
 ) -> ReadinessResult:
     index = next((i for i, prompt in enumerate(prompts) if prompt == target), None)
@@ -339,7 +231,7 @@ def evaluate_readiness(
 
 def build_default_gap_explanation(
     prompts: list[PromptEntry],
-    records: list[RunRecord],
+    records: list[V1Record],
     legacy_success_prefixes: set[int],
     target: PromptEntry,
 ) -> str | None:
