@@ -7,7 +7,7 @@ Each (notebook, stage) pair gets a focused prompt that tells codex exactly:
 - Which cells need treatment (from scanner output)
 - The treatment specification
 - A gold standard example from NB06
-- The output contract (write to .tmp, don't touch code cells)
+- The output contract (write back to the real notebook, don't touch code cells)
 """
 
 from __future__ import annotations
@@ -67,8 +67,16 @@ def _load_gold_standard(root: Path) -> str:
         src = cell_source(cell)
         if not src.strip():
             continue
-        goal_src = cell_source(cells[i - 1]) if i > 0 and cells[i - 1].get("cell_type") == "markdown" else ""
-        impl_src = cell_source(cells[i + 1]) if i < len(cells) - 1 and cells[i + 1].get("cell_type") == "markdown" else ""
+        goal_src = (
+            cell_source(cells[i - 1])
+            if i > 0 and cells[i - 1].get("cell_type") == "markdown"
+            else ""
+        )
+        impl_src = (
+            cell_source(cells[i + 1])
+            if i < len(cells) - 1 and cells[i + 1].get("cell_type") == "markdown"
+            else ""
+        )
         if "### Goal Before This Cell" in goal_src and "### Implementation Notes After This Cell" in impl_src:
             trio_text = (
                 f"### GOAL BEFORE CELL:\n{goal_src[:600]}\n\n"
@@ -95,7 +103,7 @@ def _cell_source_snippet(src: str, max_chars: int = 300) -> str:
 def build_stage1_prompt(root: Path, inventory: NotebookInventory) -> str:
     """Generate the stage 1 prompt: add/replace the chapter intro."""
     nb_path = inventory.path.relative_to(root).as_posix()
-    tmp_path = str(inventory.path.with_suffix(".ipynb.tmp").name)
+    target_path = nb_path
     chapter_num = inventory.notebook_stem.split("_")[0].lstrip("0") or "?"
 
     with open(inventory.path, encoding="utf-8") as f:
@@ -107,13 +115,17 @@ def build_stage1_prompt(root: Path, inventory: NotebookInventory) -> str:
     if intro_idx == -1:
         intro_description = "MISSING — no chapter intro exists. Insert a new one."
         insert_instruction = (
-            f"INSERT a new markdown cell at index {max(3, inventory.setup_cell_index - 1 if inventory.setup_cell_index > 0 else 3)}. "
+            f"INSERT a new markdown cell at index "
+            f"{max(3, inventory.setup_cell_index - 1 if inventory.setup_cell_index > 0 else 3)}. "
             "Place it after the Colab/Kaggle links table and before the # Setup cell."
         )
         current_content = "(no existing intro)"
     else:
         current_src = cell_source(cells[intro_idx])
-        intro_description = f"{inventory.chapter_intro_status.upper()} at cell index {intro_idx} (~{len(current_src.split())} words)."
+        intro_description = (
+            f"{inventory.chapter_intro_status.upper()} at cell index {intro_idx} "
+            f"(~{len(current_src.split())} words)."
+        )
         insert_instruction = f"REPLACE the markdown cell at index {intro_idx} with the full chapter intro."
         current_content = _cell_source_snippet(current_src)
 
@@ -131,8 +143,10 @@ def build_stage1_prompt(root: Path, inventory: NotebookInventory) -> str:
 Status: {intro_description}
 
 Current content (if any):
-```
+````
+
 {current_content}
+
 ```
 
 ## Your Task
@@ -152,11 +166,11 @@ The new intro must follow the treatment specification below exactly.
 
 1. Read the full notebook from: `{nb_path}`
 2. {insert_instruction}
-3. Write the COMPLETE modified notebook as valid JSON to: `{tmp_path}`
-   (write it to the same directory as the original notebook)
+3. Write the COMPLETE modified notebook as valid JSON back to: `{target_path}`
 4. Do NOT modify any `code` cells — not their source, outputs, or metadata
 5. Do NOT add, remove, or reorder any cell other than the one change described above
 6. The new intro cell must have `"cell_type": "markdown"` and a `"source"` field
+7. Preserve valid Jupyter notebook structure and preserve all untouched cells exactly as they are
 
 ## Hard Constraints
 
@@ -171,11 +185,14 @@ The new intro must follow the treatment specification below exactly.
 def build_stage2_prompt(root: Path, inventory: NotebookInventory) -> str:
     """Generate the stage 2 prompt: add Goal Before cells."""
     nb_path = inventory.path.relative_to(root).as_posix()
-    tmp_path = str(inventory.path.with_suffix(".ipynb.tmp").name)
+    target_path = nb_path
 
     cells_needing = inventory.cells_needing_goal()
     if not cells_needing:
-        return f"# Stage 2: No Goal Cells Needed\n\nNotebook {nb_path} already has goal cells for all code cells. No action required."
+        return (
+            f"# Stage 2: No Goal Cells Needed\n\n"
+            f"Notebook {nb_path} already has goal cells for all code cells. No action required."
+        )
 
     treatment_spec = _load_treatment_spec(root)
     gold_standard = _load_gold_standard(root)
@@ -225,9 +242,10 @@ For each code cell in the list above:
 
 1. Read the full notebook from: `{nb_path}`
 2. Apply all the cell insertions/replacements listed above
-3. Write the COMPLETE modified notebook as valid JSON to: `{tmp_path}`
+3. Write the COMPLETE modified notebook as valid JSON back to: `{target_path}`
 4. Do NOT modify any `code` cells
 5. Do NOT touch any cell not in the list above
+6. Preserve valid Jupyter notebook structure and preserve all untouched cells exactly as they are
 
 ## Hard Constraints
 
@@ -240,11 +258,14 @@ For each code cell in the list above:
 def build_stage3_prompt(root: Path, inventory: NotebookInventory) -> str:
     """Generate the stage 3 prompt: add Implementation Notes cells."""
     nb_path = inventory.path.relative_to(root).as_posix()
-    tmp_path = str(inventory.path.with_suffix(".ipynb.tmp").name)
+    target_path = nb_path
 
     cells_needing = inventory.cells_needing_impl()
     if not cells_needing:
-        return f"# Stage 3: No Impl Cells Needed\n\nNotebook {nb_path} already has implementation notes for all code cells. No action required."
+        return (
+            f"# Stage 3: No Impl Cells Needed\n\n"
+            f"Notebook {nb_path} already has implementation notes for all code cells. No action required."
+        )
 
     treatment_spec = _load_treatment_spec(root)
     gold_standard = _load_gold_standard(root)
@@ -295,9 +316,10 @@ For each code cell in the list above:
 
 1. Read the full notebook from: `{nb_path}`
 2. Apply all the cell insertions/replacements listed above
-3. Write the COMPLETE modified notebook as valid JSON to: `{tmp_path}`
+3. Write the COMPLETE modified notebook as valid JSON back to: `{target_path}`
 4. Do NOT modify any `code` cells
 5. Do NOT touch any cell not in the list above
+6. Preserve valid Jupyter notebook structure and preserve all untouched cells exactly as they are
 
 ## Hard Constraints
 

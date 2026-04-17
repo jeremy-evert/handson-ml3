@@ -9,10 +9,12 @@
 Status: THIN at cell index 0 (~71 words).
 
 Current content (if any):
-```
+````
+
 **Chapter 1 – The Machine Learning landscape**
 
 _This notebook contains the code examples in chapter 1. You'll also find the exercise solutions at the end of the notebook. The rest of this notebook is used to generate `lifesat.csv` from the original data sources, and some of this chapter's figures._...
+
 ```
 
 ## Your Task
@@ -95,11 +97,11 @@ Failing fast on environment problems is a practical ML skill because many notebo
 
 1. Read the full notebook from: `01_the_machine_learning_landscape.ipynb`
 2. REPLACE the markdown cell at index 0 with the full chapter intro.
-3. Write the COMPLETE modified notebook as valid JSON to: `01_the_machine_learning_landscape.ipynb.tmp`
-   (write it to the same directory as the original notebook)
+3. Write the COMPLETE modified notebook as valid JSON back to: `01_the_machine_learning_landscape.ipynb`
 4. Do NOT modify any `code` cells — not their source, outputs, or metadata
 5. Do NOT add, remove, or reorder any cell other than the one change described above
 6. The new intro cell must have `"cell_type": "markdown"` and a `"source"` field
+7. Preserve valid Jupyter notebook structure and preserve all untouched cells exactly as they are
 
 ## Hard Constraints
 
